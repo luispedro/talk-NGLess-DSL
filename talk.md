@@ -98,9 +98,8 @@ write(counts,
 ---
 ## Static typing of workflows
 
-You can add _modules_ to NGLess just by describing what inputs they take in a
-text file (YaML):
-
+You can add _modules_ to NGLess with a text file (YaML) describing functions
+(corresponding to command-line programmes being called). For example:
 
 ```
 version: '1.0.0'
@@ -146,23 +145,6 @@ specified. In NGLess, the following set of conventions is guaranteed:
 Design goal: **usability**
 
 ---
-## Other design decisions
-
-Functions have **one** un-named parameter, all other have to be called by name,
-for example:
-
-```python
-write(counts,
-    auto_comments=[{hash}, {script}],
-    ofile='output.txt')
-```
-
-We want the language to be understood by casual readers (familiar with the
-domain, but not the NGLess language).
-
-Design goal: **understandability**
-
----
 ## Separation of "accidental information"
 
 Accidental information includes information such as:
@@ -172,6 +154,10 @@ Accidental information includes information such as:
 3. Number of threads
 
 These determine the computational environment, but should not be part of the
+script. In NGLess, they are **not** part of the script, but part of the
+configuration.
+
+On the other hand, anything that can change the result **must** be part of the
 script.
 
 Design goals: **reproducibility**
@@ -185,31 +171,23 @@ https://ngless.embl.de/
 
 * When publishing results from this script, please cite the following references:
 
-         - Coelho, L.P., Alves, R., Monteiro, P., Huerta-Cepas, J., Freitas, A.T., and Bork, P., 2018.
-         NG-meta-profiler: fast processing of metagenomes using NGLess, a domain-specific language bioRxiv
-         367755 https://doi.org/10.1101/367755
+   - Coelho, L.P., Alves, R., Monteiro, P., Huerta-Cepas, J., Freitas, A.T., and Bork, P., 2018.
+   NG-meta-profiler: fast processing of metagenomes using NGLess, a domain-specific language bioRxiv
+   367755 https://doi.org/10.1101/367755
 
-         - Li, H., 2013. Aligning sequence reads, clone sequences and assembly contigs with BWA-MEM. arXiv
-         preprint arXiv:1303.3997.
+   - Li, H., 2013. Aligning sequence reads, clone sequences and assembly contigs with BWA-MEM. arXiv
+   preprint arXiv:1303.3997.
 
-         - Metagenomic species profiling using universal phylogenetic marker genes by Shinichi Sunagawa,
-         Daniel R Mende, Georg Zeller, Fernando Izquierdo-Carrasco, Simon A Berger, Jens Roat Kultima, Luis
-         Pedro Coelho, Manimozhiyan Arumugam, Julien Tap, Henrik Bjørn Nielsen, Simon Rasmussen, Søren
-         Brunak, Oluf Pedersen, Francisco Guarner, Willem M de Vos, Jun Wang, Junhua Li, Joël Doré, S Dusko
-         Ehrlich, Alexandros Stamatakis, and Peer Bork Nature Methods 10, 1196-1199 (2013)
-         doi:10.1038/nmeth.2693
+   - Metagenomic species profiling using universal phylogenetic marker genes by Shinichi Sunagawa,
+   Daniel R Mende, Georg Zeller, Fernando Izquierdo-Carrasco, Simon A Berger, Jens Roat Kultima, Luis
+   Pedro Coelho, Manimozhiyan Arumugam, Julien Tap, Henrik Bjørn Nielsen, Simon Rasmussen, Søren
+   Brunak, Oluf Pedersen, Francisco Guarner, Willem M de Vos, Jun Wang, Junhua Li, Joël Doré, S Dusko
+   Ehrlich, Alexandros Stamatakis, and Peer Bork Nature Methods 10, 1196-1199 (2013)
+   doi:10.1038/nmeth.2693
 ```
 
 Design goal: **support best practices**
 
----
-## Atomic write() function
-
-The function `write()` writes outputs to disk. All writes are atomic (frankly,
-I am surprised that this is not the default in most language APIs). It also
-handles any subformat conversions.
-
-Design goal: **correctness**
 
 ---
 ## Correctness/reproducibility
@@ -242,9 +220,35 @@ count(map(preprocess(load_mocat_directory('input'), ...), ...), ...)
 
 Design goals: **correctness** and **reproducibility**
 
-An analogous approach was previously used by Jug ([Coelho et al.,
+An analogous approach is used by Jug ([Coelho et al.,
 2017](https://doi.org/10.5334/jors.161)), which is a generic, Python-based,
 framework for describing workflows.
+
+---
+## Other design decisions I
+
+Functions have **one** un-named parameter, all other have to be called by name,
+for example:
+
+```python
+write(counts,
+    auto_comments=[{hash}, {script}],
+    ofile='output.txt')
+```
+
+We want the language to be understood by casual readers (familiar with the
+domain, but not the NGLess language).
+
+Design goal: **understandability**
+
+---
+## Other design decisions II: Atomic write() function
+
+The function `write()` writes outputs to disk. All writes are atomic (frankly,
+I am surprised that this is not the default in language APIs). It also
+handles any subformat conversions (compression, SAM <-> BAM, ...).
+
+Design goal: **correctness**
 
 ---
 ## Generic pre-checking (WIP)
@@ -253,7 +257,7 @@ For each NGLess function `f :: A -> B -> C`, there is a corresponding pre-check
 function
 
 ```haskell
-f' :: Maybe A -> Maybe B -> Error ()
+check_f :: Maybe A -> Maybe B -> Error ()
 ```
 
 The concept is similar to that of design-by-contract in that pre-conditions are
@@ -293,16 +297,16 @@ This is transformed into:
 
 ```python
 ngless "1.0"
-* __count_check( void, arg1=['literal'])
+* __check_count( void, arg1=['literal'])
 ...
 
 
-* __count_check( mapped, arg1=['literal'])
+* __check_count( mapped, arg1=['literal'])
 counts = count(mapped, arg1=['literal'])
 ...
 ```
 
-Ideally, `__count_check` runs very fast, but can provide early error detection.
+Ideally, `__check_count` runs very fast, but can provide early error detection.
 
 
 ---
@@ -330,14 +334,14 @@ but can still be checked early.
 
 ```python
 ngless "1.0"
-__count_check( void, arg1=['literal'])
+__check_count( void, arg1=['literal'])
 ...
 
 variable = compute()
-* __count_check( void, arg1=['literal'], arg2=variable)
+* __check_count( void, arg1=['literal'], arg2=variable)
 ...
 
-__count_check( mapped, arg1=['literal'], arg2=variable)
+__check_count( mapped, arg1=['literal'], arg2=variable)
 counts = count(mapped, arg1=['literal'], arg2=variable)
     ...
 ```
