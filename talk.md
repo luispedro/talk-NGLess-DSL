@@ -39,8 +39,8 @@ language_.
 ## NGLess
 
 Research question: _if we are willing to sacrifice workflow generality to focus
-**specifically on bioinformatics** can we use the concept of a DSL to build a
-better tool?_
+**specifically on bioinformatics** can we build a better language and a better
+tool?_
 
 What is meant by **better tool**?
 
@@ -91,9 +91,7 @@ write(counts,
 - MappedShortRead
 - MappedShortReadSet (SAM file)
 - CountsFile (TSV file)
-- _also typical programming language types, like Integer/String..._
-
-`ShortReadSet` is a set of FastQ files on disk.
+- _Typical programming language types, like Integer/String..._
 
 ---
 ## Static typing of workflows
